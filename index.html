@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Khung Phát</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Bố cục: một cột giữa trang, khung phát 16:9 ở trên, thanh điều khiển riêng ngay dưới, lịch sử xem ở cuối. */
+:root {
+  --bg: #0e1013;
+  --panel: #16191e;
+  --line: #262b33;
+  --text: #e9ebee;
+  --muted: #8b94a1;
+  --accent: #7aa9f7;
+  --accent-ink: #0b1220;
+  --danger: #f08a8a;
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+form { flex: 1 1 360px; display: flex; gap: 8px; min-width: 0; }
+input[type="text"] {
+  flex: 1; min-width: 0;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; font: inherit;
+}
+input[type="text"]::placeholder { color: var(--muted); }
+button { font: inherit; color: inherit; cursor: pointer; }
+.go {
+  background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 600;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.stage { background: #000; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.video { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; background: #000; }
+.video iframe, .video #yt { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.empty {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  padding: 24px; color: var(--muted); background: var(--panel);
+}
+.empty p { margin: 0; max-width: 34ch; }
+.msg {
+  position: absolute; left: 12px; right: 12px; bottom: 12px;
+  background: rgba(22,25,30,.95); border: 1px solid var(--line); color: var(--danger);
+  padding: 10px 12px; border-radius: 8px; font-size: .9rem;
+}
+
+.controls {
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.seek { display: flex; align-items: center; gap: 10px; }
+.time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .82rem; min-width: 5.2ch; }
+.time.end { text-align: right; }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; background: transparent; height: 22px; margin: 0; cursor: pointer; min-width: 0;
+}
+.seek input[type="range"] { flex: 1; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--line) var(--fill, 0%));
+}
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text); margin-top: -5px; border: 0;
+}
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 0; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.row .grow { flex: 1; }
+.ib {
+  background: transparent; border: 0; border-radius: 8px; width: 40px; height: 40px;
+  display: inline-grid; place-items: center; color: var(--text);
+}
+.ib:hover { background: var(--line); }
+.ib[aria-pressed="true"] { color: var(--accent); }
+.ib svg { width: 22px; height: 22px; fill: currentColor; }
+.vol { width: 90px; }
+.speed {
+  background: transparent; color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 8px; font: inherit; font-size: .85rem;
+}
+.speed option { background: var(--panel); }
+.now { font-size: .95rem; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+
+.stage:fullscreen { background: #000; justify-content: center; }
+.stage:fullscreen .video { flex: 1; aspect-ratio: auto; }
+.stage:fullscreen .controls {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0)); border: 0;
+  transition: opacity .25s;
+}
+.stage:fullscreen.idle .controls { opacity: 0; pointer-events: none; }
+.stage:fullscreen.idle { cursor: none; }
+
+section.history h2 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.history ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.history li { display: flex; gap: 8px; align-items: stretch; }
+.item {
+  flex: 1; min-width: 0; text-align: left; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; overflow-wrap: anywhere;
+}
+.item:hover { border-color: var(--accent); }
+.item small { display: block; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rm { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; color: var(--muted); }
+.rm:hover { color: var(--danger); border-color: var(--danger); }
+.hint { color: var(--muted); font-size: .85rem; margin: 0; }
+kbd { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font: inherit; font-size: .8rem; }
+@media (max-width: 520px) { .vol { width: 64px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Khung Phát</h1>
+    <form id="f" autocomplete="off">
+      <input type="text" id="url" aria-label="Liên kết hoặc mã video" placeholder="Dán liên kết hoặc mã video 11 ký tự">
+      <button class="go" type="submit">Phát</button>
+    </form>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="video">
+      <div id="yt"></div>
+      <div class="empty" id="empty"><p>Dán một liên kết video vào ô phía trên để bắt đầu xem.</p></div>
+      <div class="msg" id="msg" hidden></div>
+    </div>
+    <div class="controls" id="controls">
+      <div class="seek">
+        <span class="time" id="cur">0:00</span>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Tua video">
+        <span class="time end" id="dur">0:00</span>
+      </div>
+      <div class="row">
+        <button class="ib" id="back" aria-label="Lùi 10 giây" title="Lùi 10 giây (←)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+        </button>
+        <button class="ib" id="play" aria-label="Phát" title="Phát / Tạm dừng (Space)">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="ib" id="fwd" aria-label="Tới 10 giây" title="Tới 10 giây (→)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/></svg>
+        </button>
+        <button class="ib" id="mute" aria-label="Tắt tiếng" title="Tắt / bật tiếng (M)">
+          <svg viewBox="0 0 24 24" id="muteIcon"><path d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+        </button>
+        <input type="range" class="vol" id="vol" min="0" max="100" value="100" aria-label="Âm lượng">
+        <span class="grow"></span>
+        <button class="ib" id="loop" aria-label="Lặp lại" aria-pressed="false" title="Lặp lại (L)">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+        <select class="speed" id="speed" aria-label="Tốc độ phát">
+          <option value="0.5">0.5×</option><option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option><option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option><option value="2">2×</option>
+        </select>
+        <button class="ib" id="full" aria-label="Toàn màn hình" title="Toàn màn hình (F)">
+          <svg viewBox="0 0 24 24"><path d="M5 5h5v2H7v3H5V5zm9 0h5v5h-2V7h-3V5zM5 14h2v3h3v2H5v-5zm12 0h2v5h-5v-2h3v-3z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="now" id="now" hidden></p>
+  <p class="hint">Phím tắt: <kbd>Space</kbd> phát/dừng · <kbd>←</kbd> <kbd>→</kbd> tua 10 giây · <kbd>↑</kbd> <kbd>↓</kbd> âm lượng · <kbd>M</kbd> tắt tiếng · <kbd>F</kbd> toàn màn hình</p>
+
+  <section class="history" id="histSec" hidden>
+    <h2>Đã xem gần đây</h2>
+    <ul id="hist"></ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  var player = null, apiReady = false, pendingId = null, currentId = null, dragging = false, timer = null, idleTimer = null;
+  var HKEY = "khungphat.history";
+
+  /* ---------- tiện ích ---------- */
+  function parseId(raw) {
+    raw = (raw || "").trim();
+    if (/^[\w-]{11}$/.test(raw)) return raw;
+    var m = raw.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/|\/v\/)([\w-]{11})/);
+    return m ? m[1] : null;
+  }
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s || 0));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    var mm = h ? String(m).padStart(2, "0") : String(m);
+    return (h ? h + ":" : "") + mm + ":" + String(r).padStart(2, "0");
+  }
+  function setFill(el) {
+    var pct = (el.value - el.min) / (el.max - el.min) * 100;
+    el.style.setProperty("--fill", pct + "%");
+  }
+  function showMsg(t) { var m = $("#msg"); m.textContent = t || ""; m.hidden = !t; }
+  function loadHist() { try { return JSON.parse(localStorage.getItem(HKEY)) || []; } catch (e) { return []; } }
+  function saveHist(a) { try { localStorage.setItem(HKEY, JSON.stringify(a.slice(0, 12))); } catch (e) {} }
+
+  /* ---------- lịch sử ---------- */
+  function renderHist() {
+    var list = loadHist(), ul = $("#hist");
+    ul.textContent = "";
+    $("#histSec").hidden = list.length === 0;
+    list.forEach(function (it) {
+      var li = document.createElement("li");
+      var b = document.createElement("button");
+      b.className = "item"; b.type = "button";
+      b.textContent = it.title || it.id;
+      var sm = document.createElement("small");
+      sm.textContent = it.id; b.appendChild(sm);
+      b.addEventListener("click", function () { play(it.id); });
+      var x = document.createElement("button");
+      x.className = "rm"; x.type = "button"; x.textContent = "Xóa";
+      x.setAttribute("aria-label", "Xóa khỏi lịch sử");
+      x.addEventListener("click", function () {
+        saveHist(loadHist().filter(function (h) { return h.id !== it.id; })); renderHist();
+      });
+      li.appendChild(b); li.appendChild(x); ul.appendChild(li);
+    });
+  }
+  function remember(id, title) {
+    var list = loadHist().filter(function (h) { return h.id !== id; });
+    list.unshift({ id: id, title: title || "" });
+    saveHist(list); renderHist();
+  }
+
+  /* ---------- trình phát (API iframe chính thức) ---------- */
+  function loadApi() {
+    if (window.YT && window.YT.Player) { onApi(); return; }
+    window.onYouTubeIframeAPIReady = onApi;
+    var s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    s.onerror = function () { showMsg("Không tải được thư viện phát video. Kiểm tra kết nối mạng."); };
+    document.head.appendChild(s);
+  }
+  function onApi() {
+    apiReady = true;
+    if (pendingId) { create(pendingId); }
+  }
+  function create(id) {
+    var vars = { controls: 0, rel: 0, iv_load_policy: 3, fs: 0, disablekb: 1, playsinline: 1, cc_load_policy: 0, autoplay: 1 };
+    if (/^https?:$/.test(location.protocol)) vars.origin = location.origin;
+    player = new YT.Player("yt", {
+      host: "https://www.youtube-nocookie.com",
+      width: "100%", height: "100%", videoId: id, playerVars: vars,
+      events: { onReady: onReady, onStateChange: onState, onError: onError }
+    });
+  }
+  function play(id) {
+    showMsg("");
+    currentId = id;
+    $("#empty").hidden = true;
+    try { history.replaceState(null, "", "#" + id); } catch (e) {}
+    if (player && player.loadVideoById) { player.loadVideoById(id); }
+    else { pendingId = id; if (apiReady) create(id); else loadApi(); }
+  }
+  function onReady() {
+    player.setVolume(+$("#vol").value);
+    startTick();
+  }
+  function onState(e) {
+    var st = e.data, playing = st === 1 || st === 3;
+    $("#play").setAttribute("aria-label", playing ? "Tạm dừng" : "Phát");
+    $("#playIcon").innerHTML = playing
+      ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+    if (st === 1 || st === 2) {
+      var d = player.getVideoData ? player.getVideoData() : null;
+      if (d && d.title) {
+        $("#now").textContent = d.title; $("#now").hidden = false;
+        document.title = d.title + " · Khung Phát";
+        remember(d.video_id || currentId, d.title);
+      }
+      player.setPlaybackRate(+$("#speed").value);
+    }
+    if (st === 0 && $("#loop").getAttribute("aria-pressed") === "true") { player.seekTo(0, true); player.playVideo(); }
+  }
+  function onError(e) {
+    var c = e.data;
+    var t = "Không phát được video này.";
+    if (c === 2) t = "Liên kết hoặc mã video không hợp lệ.";
+    else if (c === 100) t = "Video không tồn tại hoặc đang ở chế độ riêng tư.";
+    else if (c === 101 || c === 150) t = "Chủ video không cho phép phát ngoài trang gốc.";
+    else if (c === 153) t = "Trình duyệt không gửi được nguồn trang. Hãy mở app qua http(s), không mở trực tiếp từ file.";
+    showMsg(t);
+  }
+  function startTick() {
+    clearInterval(timer);
+    timer = setInterval(function () {
+      if (!player || !player.getCurrentTime) return;
+      var cur = player.getCurrentTime() || 0, dur = player.getDuration() || 0;
+      $("#cur").textContent = fmt(cur);
+      $("#dur").textContent = dur ? fmt(dur) : "Trực tiếp";
+      if (!dragging && dur) { var s = $("#seek"); s.value = Math.round(cur / dur * 1000); setFill(s); }
+    }, 250);
+  }
+
+  /* ---------- điều khiển ---------- */
+  function toggle() {
+    if (!player || !player.getPlayerState) return;
+    var s = player.getPlayerState();
+    if (s === 1 || s === 3) player.pauseVideo(); else player.playVideo();
+  }
+  function skip(d) { if (player && player.getCurrentTime) player.seekTo(Math.max(0, player.getCurrentTime() + d), true); }
+  function setMute(m) {
+    if (!player) return;
+    if (m) player.mute(); else player.unMute();
+    $("#muteIcon").innerHTML = m
+      ? '<path d="M3 10v4h4l5 4V6L7 10H3zm13.6 2 2.4-2.4-1.4-1.4-2.4 2.4-2.4-2.4-1.4 1.4 2.4 2.4-2.4 2.4 1.4 1.4 2.4-2.4 2.4 2.4 1.4-1.4z"/>'
+      : '<path d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>';
+  }
+  function setVol(v) {
+    v = Math.min(100, Math.max(0, v));
+    var el = $("#vol"); el.value = v; setFill(el);
+    if (player && player.setVolume) { player.setVolume(v); if (v > 0 && player.isMuted()) setMute(false); }
+  }
+  function fullscreen() {
+    var st = $("#stage");
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (st.requestFullscreen) st.requestFullscreen();
+    else if (st.webkitRequestFullscreen) st.webkitRequestFullscreen();
+  }
+
+  $("#f").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var id = parseId($("#url").value);
+    if (!id) { showMsg("Chưa nhận ra liên kết. Hãy dán địa chỉ video hoặc mã 11 ký tự."); return; }
+    play(id);
+  });
+  $("#play").addEventListener("click", toggle);
+  $("#back").addEventListener("click", function () { skip(-10); });
+  $("#fwd").addEventListener("click", function () { skip(10); });
+  $("#mute").addEventListener("click", function () { if (player) setMute(!player.isMuted()); });
+  $("#vol").addEventListener("input", function (e) { setVol(+e.target.value); });
+  $("#loop").addEventListener("click", function (e) {
+    var b = e.currentTarget; b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  });
+  $("#speed").addEventListener("change", function (e) { if (player && player.setPlaybackRate) player.setPlaybackRate(+e.target.value); });
+  $("#full").addEventListener("click", fullscreen);
+  var seek = $("#seek");
+  seek.addEventListener("input", function () {
+    dragging = true; setFill(seek);
+    var dur = player && player.getDuration ? player.getDuration() : 0;
+    $("#cur").textContent = fmt(seek.value / 1000 * dur);
+  });
+  seek.addEventListener("change", function () {
+    var dur = player && player.getDuration ? player.getDuration() : 0;
+    if (dur) player.seekTo(seek.value / 1000 * dur, true);
+    dragging = false;
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" && t.type === "text" || t.tagName === "SELECT")) return;
+    var k = e.key;
+    if (k === " " && !(t && t.tagName === "BUTTON")) { e.preventDefault(); toggle(); }
+    else if (k === "ArrowLeft") { e.preventDefault(); skip(-10); }
+    else if (k === "ArrowRight") { e.preventDefault(); skip(10); }
+    else if (k === "ArrowUp") { e.preventDefault(); setVol(+$("#vol").value + 5); }
+    else if (k === "ArrowDown") { e.preventDefault(); setVol(+$("#vol").value - 5); }
+    else if (k === "m" || k === "M") { if (player) setMute(!player.isMuted()); }
+    else if (k === "f" || k === "F") { fullscreen(); }
+    else if (k === "l" || k === "L") { $("#loop").click(); }
+  });
+
+  /* ẩn thanh điều khiển khi toàn màn hình và không di chuột */
+  var stage = $("#stage");
+  function wake() {
+    stage.classList.remove("idle");
+    clearTimeout(idleTimer);
+    if (document.fullscreenElement) idleTimer = setTimeout(function () { stage.classList.add("idle"); }, 2500);
+  }
+  stage.addEventListener("mousemove", wake);
+  stage.addEventListener("touchstart", wake, { passive: true });
+  document.addEventListener("fullscreenchange", wake);
+
+  /* ---------- khởi động ---------- */
+  setFill($("#seek")); setFill($("#vol"));
+  renderHist();
+  var start = parseId(location.hash.slice(1)) || parseId(new URLSearchParams(location.search).get("v"));
+  if (start) { $("#url").value = start; play(start); }
+})();
+</script>
+</body>
+</html>
